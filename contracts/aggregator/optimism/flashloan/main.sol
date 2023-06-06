@@ -104,59 +104,60 @@ contract FlashAggregatorOptimism is Helper {
         safeTransferWithFee(instaLoanVariables_, fees_, msg.sender);
     }
 
-    /**
-     * @dev Middle function for route 8.
-     * @notice Middle function for route 8.
-     * @param _tokens token addresses for flashloan.
-     * @param _amounts list of amounts for the corresponding assets.
-     * @param _data extra data passed.
-     * @param _instadata pool key encoded
-     */
-    function routeUniswap(
-        address[] memory _tokens,
+    function executeOperation(
+        address[] memory _assets,
         uint256[] memory _amounts,
-        bytes memory _data,
-        bytes memory _instadata
-    ) internal {
-        PoolKey memory key = abi.decode(_instadata, (PoolKey));
+        uint256[] memory _premiums,
+        address _initiator,
+        bytes memory _data
+    ) external verifyDataHash(_data) returns (bool) {
+        require(_initiator == address(this), "not-same-sender");
+        require(msg.sender == address(aaveLending), "not-aave-sender");
 
-        uint256 amount0_;
-        uint256 amount1_;
+        FlashloanVariables memory instaLoanVariables_;
 
-        if (_tokens.length == 1) {
-            require(
-                (_tokens[0] == key.token0 || _tokens[0] == key.token1),
-                "tokens-do-not-match-pool"
+        (address sender_, bytes memory data_) = abi.decode(
+            _data,
+            (address, bytes)
+        );
+
+        instaLoanVariables_._tokens = _assets;
+        instaLoanVariables_._amounts = _amounts;
+        instaLoanVariables_._instaFees = calculateFees(
+            _amounts,
+            calculateFeeBPS(1, sender_)
+        );
+        instaLoanVariables_._iniBals = calculateBalances(
+            _assets,
+            address(this)
+        );
+
+        safeApprove(instaLoanVariables_, _premiums, address(aaveLending));
+        safeTransfer(instaLoanVariables_, sender_);
+
+        if (checkIfDsa(sender_)) {
+            Address.functionCall(
+                sender_,
+                data_,
+                "DSA-flashloan-fallback-failed"
             );
-            if (_tokens[0] == key.token0) {
-                amount0_ = _amounts[0];
-            } else {
-                amount1_ = _amounts[0];
-            }
-        } else if (_tokens.length == 2) {
-            require(
-                (_tokens[0] == key.token0 && _tokens[1] == key.token1),
-                "tokens-do-not-match-pool"
-            );
-            amount0_ = _amounts[0];
-            amount1_ = _amounts[1];
         } else {
-            revert("Number of tokens do not match");
+            InstaFlashReceiverInterface(sender_).executeOperation(
+                _assets,
+                _amounts,
+                instaLoanVariables_._instaFees,
+                sender_,
+                data_
+            );
         }
 
-        IUniswapV3Pool pool = IUniswapV3Pool(
-            computeAddress(uniswapFactoryAddr, key)
+        instaLoanVariables_._finBals = calculateBalances(
+            _assets,
+            address(this)
         );
+        validateFlashloan(instaLoanVariables_);
 
-        bytes memory data_ = abi.encode(
-            _tokens,
-            _amounts,
-            msg.sender,
-            key,
-            _data
-        );
-        dataHash = bytes32(keccak256(data_));
-        pool.flash(address(this), amount0_, amount1_, data_);
+        return true;
     }
 
     /**
@@ -212,8 +213,6 @@ contract FlashAggregatorOptimism is Helper {
 
         if (_route == 1) {
             routeAave(_tokens, _amounts, _data);
-        } else if (_route == 8) {
-            routeUniswap(_tokens, _amounts, _data, _instadata);
         } else {
             revert("route-does-not-exist");
         }

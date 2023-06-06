@@ -43,4 +43,6 @@ contract Variables is ConstantVariables {
         address token1;
         uint24 fee;
     }
+
+    mapping(address => bool) public isWhitelisted;
 }

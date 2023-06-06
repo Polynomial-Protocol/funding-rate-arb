@@ -8,6 +8,27 @@ contract Helper is Variables {
     using SafeERC20 for IERC20;
 
     /**
+ * @dev Returns fee for the passed route in BPS.
+     * @notice Returns fee for the passed route in BPS. 1 BPS == 0.01%.
+     * @param _route route number for flashloan.
+     */
+    function calculateFeeBPS(uint256 _route, address account_)
+    public
+    view
+    returns (uint256 BPS_)
+    {
+        if (_route == 1) {
+            BPS_ = aaveLending.FLASHLOAN_PREMIUM_TOTAL();
+        } else {
+            revert("Invalid source");
+        }
+
+        if (!isWhitelisted[account_] && BPS_ < InstaFeeBPS) {
+            BPS_ = InstaFeeBPS;
+        }
+    }
+
+    /**
      * @dev Approves the token to the spender address with allowance amount.
      * @notice Approves the token to the spender address with allowance amount.
      * @param token_ token for which allowance is to be given.
