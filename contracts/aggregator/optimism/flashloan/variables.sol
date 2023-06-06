@@ -5,17 +5,23 @@ import "./interfaces.sol";
 
 contract ConstantVariables {
     address public constant treasuryAddr =
-        0xDAF12965b3D5BF60843AA1FB49E2688919e697a0;
+    0x7cb6bF3e7395965b2162A7C2e6876720C20012d6;
+
     address private constant instaListAddr =
-        0x9926955e0Dd681Dc303370C52f4Ad0a4dd061687;
+        0xd567E18FDF8aFa58953DD8B0c1b6C97adF67566B;
     ListInterface public constant instaList = ListInterface(instaListAddr);
 
     bytes32 internal constant POOL_INIT_CODE_HASH =
         0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54;
 
-    uint256 public constant InstaFeeBPS = 5; // in BPS; 1 BPS = 0.01%
+    uint256 public constant InstaFeeBPS = 0; // in BPS; 1 BPS = 0.01%
+
     address public constant uniswapFactoryAddr =
         0x1F98431c8aD98523631AE4a59f267346ea31F984;
+
+    IWeth internal constant wethToken = IWeth(0x4200000000000000000000000000000000000006);
+
+    IAaveLending internal constant aaveLending = IAaveLending(0x794a61358D6845594F94dc1DB02A252b5b4814aD);
 }
 
 contract Variables is ConstantVariables {

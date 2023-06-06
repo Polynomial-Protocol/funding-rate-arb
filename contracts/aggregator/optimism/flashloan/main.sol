@@ -160,6 +160,37 @@ contract FlashAggregatorOptimism is Helper {
     }
 
     /**
+  * @dev Middle function for route 1.
+     * @notice Middle function for route 1.
+     * @param _tokens list of token addresses for flashloan.
+     * @param _amounts list of amounts for the corresponding assets or amount of ether to borrow as collateral for flashloan.
+     * @param _data extra data passed.
+     */
+    function routeAave(
+        address[] memory _tokens,
+        uint256[] memory _amounts,
+        bytes memory _data
+    ) internal {
+        bytes memory data_ = abi.encode(msg.sender, _data);
+        uint256 length_ = _tokens.length;
+        uint256[] memory _modes = new uint256[](length_);
+        for (uint256 i = 0; i < length_; i++) {
+            _modes[i] = 0;
+        }
+        dataHash = bytes32(keccak256(data_));
+        aaveLending.flashLoan(
+            address(this),
+            _tokens,
+            _amounts,
+            _modes,
+            address(0),
+            data_,
+            3228
+        );
+    }
+
+
+    /**
      * @dev Main function for flashloan for all routes. Calls the middle functions according to routes.
      * @notice Main function for flashloan for all routes. Calls the middle functions according to routes.
      * @param _tokens token addresses for flashloan.
@@ -179,7 +210,9 @@ contract FlashAggregatorOptimism is Helper {
         (_tokens, _amounts) = bubbleSort(_tokens, _amounts);
         validateTokens(_tokens);
 
-        if (_route == 8) {
+        if (_route == 1) {
+            routeAave(_tokens, _amounts, _data);
+        } else if (_route == 8) {
             routeUniswap(_tokens, _amounts, _data, _instadata);
         } else {
             revert("route-does-not-exist");
